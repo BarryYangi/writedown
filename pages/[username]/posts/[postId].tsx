@@ -1,31 +1,27 @@
 import { formatTimeStamp } from "@/components/dashboard/TextArea/PostButtons";
+import { NoteDocument, UserDocument } from "@/types/utils/firebaseOperations";
 import { ReactMarkdown } from "react-markdown/lib/react-markdown";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { Note } from "@/types/utils/firebaseOperations";
 import UserMenu from "@/components/common/UserMenu";
 import HeadTags from "@/components/common/HeadTags";
-import BetaBadge from "@/components/ui/BetaBadge";
+import useUser from "@/components/hooks/useUser";
 import { doc, getDoc } from "firebase/firestore";
 import Footer from "@/components/home/Footer";
-import RemoveMarkdown from "remove-markdown";
 import { RiMenu5Fill } from "react-icons/ri";
 import Button from "@/components/ui/Button";
 import { GetServerSideProps } from "next";
-import { User } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { auth } from "@/pages/_app";
-import Head from "next/head";
 import Link from "next/link";
-import React from "react";
 
 interface Props {
-  note: Note;
+  note: NoteDocument;
   name: string;
   profilePicture: string;
 }
 
 export const PostPage = ({ note, name, profilePicture }: Props) => {
-  const [user] = useAuthState(auth);
+  const { user } = useUser();
 
   return (
     <>
@@ -114,13 +110,23 @@ export const PostPage = ({ note, name, profilePicture }: Props) => {
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { postId, username } = context.query;
 
-  let user: User;
-  let note: Note;
+  let user: UserDocument;
+  let note: NoteDocument;
 
   try {
-    const userDoc = doc(db, "users", username as string);
-    const userSnapshot = await getDoc(userDoc);
-    user = userSnapshot.data() as User;
+    const usernameDoc = doc(db, "usernames", username as string);
+    const usernameSnapshot = await getDoc(usernameDoc);
+    const usernameData = usernameSnapshot.data();
+    if (usernameData) {
+      const userDoc = doc(db, "users", usernameData.uid as string);
+      const userSnapshot = await getDoc(userDoc);
+      user = userSnapshot.data() as UserDocument;
+    } else {
+      const uid = username as string;
+      const userDoc = doc(db, "users", uid);
+      const userSnapshot = await getDoc(userDoc);
+      user = userSnapshot.data() as UserDocument;
+    }
   } catch (error) {
     console.log(error);
     return {
@@ -129,17 +135,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   try {
-    const noteDoc = doc(
-      db,
-      "users",
-      username as string,
-      "notes",
-      postId as string
-    );
+    const noteDoc = doc(db, "users", user.uid, "notes", postId as string);
     const noteSnapshot = await getDoc(noteDoc);
-    note = noteSnapshot.data() as Note;
+    note = noteSnapshot.data() as NoteDocument;
   } catch (error) {
-    console.log(error);
     return {
       notFound: true,
     };

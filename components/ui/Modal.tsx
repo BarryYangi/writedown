@@ -10,6 +10,7 @@ interface ModalProps {
   closeText?: string;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  undismissable?: boolean;
   children?: React.ReactNode;
 }
 
@@ -21,6 +22,7 @@ const Modal = ({
   closeText,
   isOpen,
   setIsOpen,
+  undismissable,
   children,
 }: ModalProps) => {
   return (
@@ -29,6 +31,9 @@ const Modal = ({
         as="div"
         className="relative z-50"
         onClose={() => {
+          if (undismissable) {
+            return;
+          }
           setIsOpen(false);
         }}
       >
@@ -41,7 +46,7 @@ const Modal = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
+          <div className="fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
